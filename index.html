@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bento programming language</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'DM Mono', monospace;
+            background-color: #1e1e2e;
+            color: #cdd6f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        nav {
+            background-color: #313244;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        nav a {
+            color: #cdd6f4;
+            text-decoration: none;
+            margin-left: 1rem;
+            transition: color 0.3s ease;
+        }
+        nav a:hover {
+            color: #f5c2e7;
+        }
+        main {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        .content {
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #f5c2e7;
+        }
+        #codeWrapper {
+            position: relative;
+            margin-bottom: 1rem;
+            background-color: #313244;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #bentoCode, #highlightedCode {
+            margin: 0;
+            border: none;
+            width: 100%;
+            height: 350px;
+            font-family: 'DM Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            tab-size: 4;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        #bentoCode {
+            position: absolute;
+            top: 0;
+            left: 0;
+            color: transparent;
+            background-color: transparent;
+            caret-color: #cdd6f4;
+            resize: none;
+            outline: none;
+            overflow: auto;
+        }
+        #highlightedCode {
+            position: relative;
+            pointer-events: none;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow: hidden;
+        }
+        /* Syntax Highlighting */
+        .keyword { color: #f38ba8; }
+        .function { color: #89b4fa; }
+        .operator { color: #fab387; }
+        .string { color: #a6e3a1; }
+        .number { color: #f9e2af; }
+        .comment { color: #6c7086; }
+        #runButton {
+            background-color: #89b4fa;
+            color: #1e1e2e;
+            border: none;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: not-allowed;
+            transition: background-color 0.3s ease;
+        }
+        #runButton:hover {
+            background-color: #b4befe;
+        }
+        @media (max-width: 768px) {
+            .content {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+<nav>
+    <a href="#" style="font-weight: bold;">bento</a>
+    <div>
+        <a href="#docs">docs</a>
+        <a href="#download">download</a>
+        <a href="#community">community</a>
+    </div>
+</nav>
+<main>
+    <div class="content">
+        <h1>bento</h1>
+        <p>a minimal and expressive programming language for embedding and safe user-facing scripting capability</p>
+        <div id="codeWrapper">
+                <textarea id="bentoCode" spellcheck="false">eval := |expr| {
+  ops := (
+      '+': _add,
+      '-': _sub
+  )
+  stk := (,)
+  for(expr / ' ') |t| {
+    if ops.has(t) then {
+      (b, a) :=
+        (stk.pop(), stk.pop())
+      stk.push(ops(t)(a, b))
+    } else stk.push(num(t))
+  }
+  stk.pop()
+}</textarea>
+            <pre id="highlightedCode"></pre>
+        </div>
+        <button id="runButton" title="This feature will be added soon">run</button>
+    </div>
+</main>
+<script>
+    function highlightBentoSyntax(code) {
+        const rules = [
+            { pattern: /\b(if|else|for|then)\b/g, class: 'keyword' },
+            { pattern: /(:=|\||{|}|\(|\)|,|\/)/g, class: 'operator' },
+            { pattern: /('[^']+')/g, class: 'string' },
+            { pattern: /\b([a-zA-Z_]\w*)\b/g, class: 'function' },
+            { pattern: /\b(\d+)\b/g, class: 'number' },
+        ];
+
+        const lines = code.split('\n');
+        const highlightedLines = lines.map(line => {
+            const spans = [];
+            let lastIndex = 0;
+
+            while (lastIndex < line.length) {
+                let earliestMatch = null;
+                let earliestRule = null;
+
+                for (const rule of rules) {
+                    rule.pattern.lastIndex = lastIndex;
+                    const match = rule.pattern.exec(line);
+                    if (match && (!earliestMatch || match.index < earliestMatch.index)) {
+                        earliestMatch = match;
+                        earliestRule = rule;
+                    }
+                }
+
+                if (earliestMatch) {
+                    if (earliestMatch.index > lastIndex) {
+                        spans.push(document.createTextNode(line.slice(lastIndex, earliestMatch.index)));
+                    }
+                    const span = document.createElement('span');
+                    span.className = earliestRule.class;
+                    span.textContent = earliestMatch[0];
+                    spans.push(span);
+                    lastIndex = earliestRule.pattern.lastIndex;
+                } else {
+                    spans.push(document.createTextNode(line.slice(lastIndex)));
+                    break;
+                }
+            }
+
+            const lineElement = document.createElement('span');
+            spans.forEach(span => lineElement.appendChild(span));
+            return lineElement;
+        });
+
+        const fragment = document.createDocumentFragment();
+        highlightedLines.forEach((line, index) => {
+            if (index > 0) {
+                fragment.appendChild(document.createTextNode('\n'));
+            }
+            fragment.appendChild(line);
+        });
+
+        return fragment;
+    }
+
+    function updateHighlighting() {
+        const codeElement = document.getElementById('bentoCode');
+        const highlightedElement = document.getElementById('highlightedCode');
+        const highlightedCode = highlightBentoSyntax(codeElement.value);
+        highlightedElement.innerHTML = '';
+        highlightedElement.appendChild(highlightedCode);
+    }
+
+    function syncScroll() {
+        const codeElement = document.getElementById('bentoCode');
+        const highlightedElement = document.getElementById('highlightedCode');
+        highlightedElement.scrollTop = codeElement.scrollTop;
+        highlightedElement.scrollLeft = codeElement.scrollLeft;
+    }
+
+    window.onload = function() {
+        const codeElement = document.getElementById('bentoCode');
+        codeElement.addEventListener('input', updateHighlighting);
+        codeElement.addEventListener('scroll', syncScroll);
+        updateHighlighting();
+
+        const runButton = document.getElementById('runButton');
+        runButton.disabled = true;
+    };
+</script>
+</body>
+</html>
